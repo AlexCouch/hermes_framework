@@ -8,10 +8,10 @@ import net.alexwells.kottle.KotlinEventBusSubscriber
 import net.minecraft.entity.player.ServerPlayerEntity
 import net.minecraft.nbt.CompoundNBT
 import net.minecraft.nbt.StringNBT
+import net.minecraftforge.event.TickEvent
 import net.minecraftforge.eventbus.api.SubscribeEvent
 import net.minecraftforge.fml.LogicalSide
 import net.minecraftforge.fml.common.Mod
-import net.minecraftforge.fml.common.gameevent.TickEvent
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 
 @Mod("test-mod")
