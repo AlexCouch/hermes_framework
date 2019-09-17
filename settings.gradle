@@ -1,0 +1,3 @@
+rootProject.name = 'hermes'
+
+include 'hermes-1.12', 'hermes-1.14'
