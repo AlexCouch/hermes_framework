@@ -23,6 +23,11 @@ archivesBaseName = 'Hermes-1.14'
 
 sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
+repositories {
+    maven { url 'https://minecraft.curseforge.com/api/maven/' }
+    mavenCentral()
+}
+
 minecraft {
     // The mappings can be changed at any time, and must be in the following format.
     // snapshot_YYYYMMDD   Snapshot are built nightly.
@@ -89,6 +94,10 @@ minecraft {
     }
 }
 
+configurations{
+    mod
+}
+
 dependencies {
     // Specify the version of Minecraft to use, If this is any group other then 'net.minecraft' it is assumed
     // that the dep is a ForgeGradle 'patcher' dependency. And it's patches will be applied.
@@ -113,7 +122,10 @@ dependencies {
     // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
     // http://www.gradle.org/docs/current/userguide/dependency_management.html
     compile "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin"
+    implementation "org.jetbrains.kotlin:kotlin-reflect"
 
+    compile "kottle:Kottle:$kottleVersion"
+    mod "kottle:Kottle:$kottleVersion"
 }
 
 // Example for how to get properties into the manifest for reading by the runtime..
@@ -157,4 +169,18 @@ publishing {
 
 sourceSets{
     main.kotlin.srcDirs += 'src/main/kotlin'
+}
+
+task installMods(type: Copy, dependsOn: "deinstallMods") {
+    from { configurations.mod }
+    include "**/*.jar"
+    into file("run/mods")
+}
+
+task deinstallMods(type: Delete) {
+    delete fileTree(dir: "run/mods", include: "*.jar")
+}
+
+project.afterEvaluate {
+    project.tasks['prepareRuns'].dependsOn(project.tasks['installMods'])
 }
