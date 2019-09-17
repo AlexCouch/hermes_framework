@@ -9,19 +9,15 @@ import net.minecraftforge.fml.common.network.ByteBufUtils
 import net.minecraftforge.fml.common.network.simpleimpl.MessageContext
 
 class ResponsiveServerMessage() : ResponsiveSidedMessage(){
-    constructor(name: String, responsiveDataPacket: ResponsiveDataPacket, pos: BlockPos) : this(){
+    constructor(responsiveDataPacket: ResponsiveDataPacket) : this(){
         this.dataPacket = responsiveDataPacket
-        this.pos = pos
-        this.name = name
     }
 
     override fun fromBytes(buf: ByteBuf) {
         val d = ByteBufUtils.readTag(buf) ?: NBTTagCompound()
-        if(d.hasKey("packet") && d.hasKey("pos") && d.hasKey("name")){
-            val name = d.getString("name")
+        if(d.hasKey("packet") && d.hasKey("uuid")){
+            val name = d.getString("uuid")
             val packet = d.getCompoundTag("packet")
-            val postag = d.getCompoundTag("pos")
-            this.pos = NBTUtil.getPosFromTag(postag)
             this.data = packet
             this.dataPacket = CommonDataSpace.retrieveResponsiveDataPacket(name) ?: return
         }
@@ -29,11 +25,10 @@ class ResponsiveServerMessage() : ResponsiveSidedMessage(){
 
     override fun toBytes(buf: ByteBuf) {
         val d = NBTTagCompound()
-        d.setString("name", this.name)
-        d.setTag("packet", this.dataPacket?.prepareMessageData?.invoke() ?: NBTTagCompound())
-        d.setTag("pos", NBTUtil.createPosTag(this.pos))
+        d.setTag("packet", this.dataPacket!!.prepareMessageData())
+        val uuid = CommonDataSpace.storeResponsiveDataPackets(this.dataPacket!!)
+        d.setString("uuid", uuid)
         ByteBufUtils.writeTag(buf, d)
-        CommonDataSpace.storeResponsiveDataPackets(this.name, this.dataPacket ?: return)
     }
 
 }
@@ -43,43 +38,37 @@ class ResponsiveServerMessageHandler : ResponsiveSidedMessageHandler<ResponsiveS
         val player = ctx.serverHandler.player
         val world = player.serverWorld
         val data = message.data
-        val dataPacket = message.dataPacket ?: return null
-        val pos = message.pos
+        val dataPacket = message.dataPacket!!
         world.addScheduledTask {
-            dataPacket.processMessageData(data, world, pos, player)
+            dataPacket.processMessageData(data, world, player)
         }
         val respPacket = DataPacket(dataPacket.prepareResponseData, dataPacket.processResponseData)
-        return ClientSideMessage(message.name, respPacket, pos)
+        return ClientSideMessage(respPacket)
     }
 
 }
 
 class ResponsiveClientMessage() : ResponsiveSidedMessage(){
-    constructor(name: String, data: ResponsiveDataPacket, pos: BlockPos) : this(){
+    constructor(data: ResponsiveDataPacket) : this(){
         this.dataPacket = data
-        this.pos = pos
-        this.name = name
     }
 
     override fun fromBytes(buf: ByteBuf) {
         val d = ByteBufUtils.readTag(buf) ?: NBTTagCompound()
-        if(d.hasKey("packet") && d.hasKey("pos") && d.hasKey("name")){
-            val name = d.getString("name")
+        if(d.hasKey("packet") && d.hasKey("uuid")){
+            val uuid = d.getString("uuid")
             val packet = d.getCompoundTag("packet")
-            val postag = d.getCompoundTag("pos")
-            this.pos = NBTUtil.getPosFromTag(postag)
             this.data = packet
-            this.dataPacket = CommonDataSpace.retrieveResponsiveDataPacket(name) ?: return
+            this.dataPacket = CommonDataSpace.retrieveResponsiveDataPacket(uuid) ?: return
         }
     }
 
     override fun toBytes(buf: ByteBuf) {
         val d = NBTTagCompound()
-        d.setString("name", this.name)
-        d.setTag("packet", this.dataPacket?.prepareMessageData?.invoke() ?: NBTTagCompound())
-        d.setTag("pos", NBTUtil.createPosTag(this.pos))
+        d.setTag("packet", this.dataPacket!!.prepareMessageData())
+        val uuid = CommonDataSpace.storeResponsiveDataPackets(this.dataPacket!!)
+        d.setString("uuid", uuid)
         ByteBufUtils.writeTag(buf, d)
-        CommonDataSpace.storeResponsiveDataPackets(this.name, this.dataPacket ?: return)
     }
 
 }
@@ -90,15 +79,15 @@ class ResponsiveClientMessageHandler : ResponsiveSidedMessageHandler<ResponsiveC
         val world = mc.world
         val player = mc.player
         val data = message.data
-        val pos = message.pos
+        val dataPacket = message.dataPacket!!
         mc.addScheduledTask {
-            message.dataPacket?.processMessageData?.invoke(data, world, pos, player)
+            dataPacket.processMessageData(data, world, player)
         }
-        val dataPacket = DataPacket(
-                message.dataPacket?.prepareResponseData ?: return null,
-                message.dataPacket?.processResponseData ?: return null
+        val responseDataPacket = DataPacket(
+                dataPacket.prepareResponseData,
+                dataPacket.processResponseData
         )
-        return ServerSideMessage(message.name, dataPacket, pos)
+        return ServerSideMessage(responseDataPacket)
     }
 
 }

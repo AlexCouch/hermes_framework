@@ -12,22 +12,19 @@ import java.util.function.Supplier
 
 val basicSidedMessageEncoder: BiConsumer<BasicSideMessage, PacketBuffer> = BiConsumer { message, packet ->
     val d = CompoundNBT()
-    d.putString("name", message.name)
     d.put("data", message.dataPacket.prepareMessageData.invoke())
-    d.put("pos", NBTUtil.writeBlockPos(message.pos))
+    val uuid = CommonDataSpace.storeDataPackets(message.dataPacket)
+    d.putString("uuid", uuid)
     packet.writeCompoundTag(d)
-    CommonDataSpace.storeDataPackets(message.name, message.dataPacket)
 }
 
 val basicSidedMessageDecoder: Function<PacketBuffer, BasicSideMessage?> = Function{ packet ->
     val d = packet.readCompoundTag() ?: throw IllegalStateException("Received packet has no compound tag!")
-    if(d.contains("data") && d.contains("pos") && d.contains("name")){
-        val name = d.getString("name")
+    if(d.contains("data") && d.contains("uuid")){
+        val uuid = d.getString("uuid")
         val data = d.getCompound("data")
-        val postag = d.getCompound("pos")
-        val pos = (NBTUtil.readBlockPos(postag))
-        val dataPacket = CommonDataSpace.retrieveDataPacket(name) ?: throw IllegalStateException("Packet does not exist in common data space!")
-        return@Function BasicSideMessage(name, dataPacket, pos, data)
+        val dataPacket = CommonDataSpace.retrieveDataPacket(uuid) ?: throw IllegalStateException("Packet does not exist in common data space!")
+        return@Function BasicSideMessage(dataPacket, data)
     }
     null
 }
@@ -37,9 +34,9 @@ val basicSidedMessageHandler: BiConsumer<BasicSideMessage, Supplier<NetworkEvent
         val mc = Minecraft.getInstance()
         val world = mc.world
         val player = mc.player
-        message.dataPacket.processMessageData.invoke(message.data, world, message.pos, player)
+        message.dataPacket.processMessageData(message.data, world, player)
         context.get().packetHandled = true
     }
 }
 
-data class BasicSideMessage(val name: String, val dataPacket: DataPacket, val pos: BlockPos, val data: CompoundNBT = CompoundNBT())
+data class BasicSideMessage(val dataPacket: DataPacket, val data: CompoundNBT = CompoundNBT())

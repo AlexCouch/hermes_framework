@@ -11,6 +11,11 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import net.minecraftforge.fml.network.NetworkDirection
 import net.minecraftforge.fml.network.NetworkRegistry
+import java.util.*
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.collections.HashMap
 
 object MessageFactory{
     internal val stream = NetworkRegistry.ChannelBuilder.named(ResourceLocation("hermes","hermes"))
@@ -19,23 +24,21 @@ object MessageFactory{
         .networkProtocolVersion { "1.0" }
         .simpleChannel()
 
-    fun sendDataToClient(messageName: String, player: PlayerEntity, pos: BlockPos, prepareData: () -> CompoundNBT, processData: ProcessData){
+    fun sendDataToClient(player: PlayerEntity, prepareData: () -> CompoundNBT, processData: ProcessData){
         val dataPacket = DataPacket(prepareData, processData)
-        val clientMessage = BasicSideMessage(messageName, dataPacket, pos)
+        val clientMessage = BasicSideMessage(dataPacket)
         if(player is ServerPlayerEntity) stream.sendTo(clientMessage, player.connection.netManager, NetworkDirection.PLAY_TO_CLIENT)
         else throw IllegalStateException("Wrong side!")
 
     }
 
-    fun sendDataToServer(messageName: String, pos: BlockPos, prepareData: () -> CompoundNBT, processData: ProcessData){
+    fun sendDataToServer(prepareData: () -> CompoundNBT, processData: ProcessData){
         val dataPacket = DataPacket(prepareData, processData)
-        val serverMessage = BasicSideMessage(messageName, dataPacket, pos)
+        val serverMessage = BasicSideMessage(dataPacket)
         stream.sendToServer(serverMessage)
     }
 
     fun sendDataToServerWithResponse(
-            messageName: String,
-            pos: BlockPos,
             prepareMessageData: () -> CompoundNBT,
             processMessageData: ProcessData,
             prepareResponseData: () -> CompoundNBT,
@@ -47,13 +50,11 @@ object MessageFactory{
                 prepareResponseData,
                 processResponseData
         )
-        val responsiveServerMessage = ResponsiveSidedMessage(messageName, responsiveDataPacket, pos)
+        val responsiveServerMessage = ResponsiveSidedMessage(responsiveDataPacket)
         stream.sendToServer(responsiveServerMessage)
     }
 
     fun sendDataToClientWithResponse(
-            messageName: String,
-            pos: BlockPos,
             player: PlayerEntity,
             prepareMessageData: DataBuilder,
             processMessageData: ProcessData,
@@ -66,30 +67,33 @@ object MessageFactory{
                 prepareResponseData,
                 processResponseData
         )
-        val responsiveClientMessage = ResponsiveSidedMessage(messageName, responsiveDataPacket, pos)
+        val responsiveClientMessage = ResponsiveSidedMessage(responsiveDataPacket)
         if(player is ServerPlayerEntity) stream.sendTo(responsiveClientMessage, player.connection.netManager, NetworkDirection.PLAY_TO_CLIENT)
         else throw IllegalStateException("Wrong side!")
     }
 }
 
 typealias DataBuilder = ()->CompoundNBT
-typealias ProcessData = (data: CompoundNBT, world: World, pos: BlockPos, player: PlayerEntity) -> Unit
+typealias ProcessData = (data: CompoundNBT, world: World, player: PlayerEntity) -> Unit
 
 object CommonDataSpace{
     private val dataPackets = HashMap<String, DataPacket>()
-
     private val responsiveDataPackets = HashMap<String, ResponsiveDataPacket>()
 
-    fun storeDataPackets(name: String, data: DataPacket){
-        this.dataPackets += (name to data)
+    fun storeDataPackets(data: DataPacket): String{
+        val uuid = UUID.randomUUID().toString()
+        this.dataPackets += (uuid to data)
+        return uuid
     }
 
-    fun storeResponsiveDataPackets(name: String, data: ResponsiveDataPacket){
-        this.responsiveDataPackets += (name to data)
+    fun storeResponsiveDataPackets(data: ResponsiveDataPacket): String{
+        val uuid = UUID.randomUUID().toString()
+        this.responsiveDataPackets += (uuid to data)
+        return uuid
     }
 
-    fun retrieveDataPacket(name: String) = this.dataPackets.remove(name)
-    fun retrieveResponsiveDataPacket(name: String) = this.responsiveDataPackets.remove(name)
+    fun retrieveDataPacket(uuid: String) = this.dataPackets.remove(uuid)
+    fun retrieveResponsiveDataPacket(uuid: String) = this.responsiveDataPackets.remove(uuid)
 }
 
 data class DataPacket(val prepareMessageData: () -> CompoundNBT, val processMessageData: ProcessData)
@@ -99,8 +103,6 @@ data class ResponsiveDataPacket(
     val prepareResponseData: () -> CompoundNBT, val processResponseData: ProcessData
 )
 object MessageBuilder{
-    var messageName: String = ""
-    var blockpos: BlockPos? = null
     var player: PlayerEntity? = null
     private var prepareDataFunc: DataBuilder? = null
     private var processDataFunc: ProcessData? = null
@@ -110,12 +112,10 @@ object MessageBuilder{
 
     fun build(builder: MessageBuilder.()->Unit): MessageBuildResults{
         this.builder()
-        check(!messageName.isBlank()) { "Message name cannot be blank! Please set one." }
-        val bpos = blockpos
         val player = player
         val prepareData = prepareDataFunc ?: throw IllegalStateException("prepareDataFunc cannot be null! Please set one!")
         val processData = processDataFunc ?: throw IllegalStateException("processDataFunc cannot be null! Please set one!")
-        return MessageBuildResults(messageName, bpos, player, prepareData, processData, prepareResponseDataFunc, processResponseDataFunc)
+        return MessageBuildResults(player, prepareData, processData, prepareResponseDataFunc, processResponseDataFunc)
     }
 
     fun prepareMessageData(dataBuilder: DataBuilder){
@@ -136,8 +136,6 @@ object MessageBuilder{
 }
 
 data class MessageBuildResults(
-        val messageName: String,
-        val blockpos: BlockPos?,
         val player: PlayerEntity?,
         val prepareData: DataBuilder,
         val processData: ProcessData,
@@ -147,11 +145,9 @@ data class MessageBuildResults(
 
 fun sendDataToClient(messageBuilder: MessageBuilder.()->Unit){
     val buildResults = MessageBuilder.build(messageBuilder)
-    val (messageName, blockpos, player, prepareData, processData) = buildResults
+    val (player, prepareData, processData) = buildResults
     MessageFactory.sendDataToClient(
-        messageName,
         player ?: throw IllegalStateException("Blockpos cannot be null! Please set one!"),
-        blockpos ?: throw IllegalStateException("Blockpos cannot be null! Please set one!"),
         prepareData,
         processData
     )
@@ -159,10 +155,8 @@ fun sendDataToClient(messageBuilder: MessageBuilder.()->Unit){
 
 fun sendDataToServer(messageBuilder: MessageBuilder.()->Unit){
     val buildResults = MessageBuilder.build(messageBuilder)
-    val (messageName, blockpos, _, prepareData, processData, _, _) = buildResults
+    val (_, prepareData, processData, _, _) = buildResults
     MessageFactory.sendDataToServer(
-        messageName,
-        blockpos ?: throw IllegalStateException("BlockPos cannot be null! Please set one!"),
         prepareData,
         processData
     )
@@ -170,10 +164,8 @@ fun sendDataToServer(messageBuilder: MessageBuilder.()->Unit){
 
 fun sendDataToClientWithResponse(messageBuilder: MessageBuilder.()->Unit){
     val buildResults = MessageBuilder.build(messageBuilder)
-    val (messageName, blockpos, player, prepareData, processData, prepareResponseData, processResponseData) = buildResults
+    val (player, prepareData, processData, prepareResponseData, processResponseData) = buildResults
     MessageFactory.sendDataToClientWithResponse(
-            messageName,
-            blockpos ?: throw IllegalStateException("BlockPos cannot be null! Please set one!"),
             player ?: throw IllegalStateException("Player cannot be null! Please set one!"),
             prepareData,
             processData,
@@ -184,10 +176,8 @@ fun sendDataToClientWithResponse(messageBuilder: MessageBuilder.()->Unit){
 
 fun sendDataToServerWithResponse(messageBuilder: MessageBuilder.()->Unit){
     val buildResults = MessageBuilder.build(messageBuilder)
-    val (messageName, blockpos, _, prepareData, processData, prepareResponseData, processResponseData) = buildResults
+    val (_, prepareData, processData, prepareResponseData, processResponseData) = buildResults
     MessageFactory.sendDataToServerWithResponse(
-            messageName,
-            blockpos ?: throw IllegalStateException("BlockPos cannot be null! Please set one!"),
             prepareData,
             processData,
             prepareResponseData ?: throw IllegalStateException("You must provide a prepare response data function."),

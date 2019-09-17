@@ -14,7 +14,7 @@ apply plugin: 'net.minecraftforge.gradle.forge'
 apply plugin: 'idea'
 apply plugin: 'kotlin'
 
-version = "1.1"
+version = "2.0"
 group = "com.couch.hermes" // http://maven.apache.org/guides/mini/guide-naming-conventions.html
 archivesBaseName = "Hermes-1.12"
 

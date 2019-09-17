@@ -6,24 +6,30 @@ import net.minecraft.util.math.BlockPos
 import net.minecraft.world.World
 import net.minecraftforge.fml.common.network.simpleimpl.IMessage
 import net.minecraftforge.fml.common.network.simpleimpl.IMessageHandler
+import java.util.*
+import kotlin.collections.HashMap
 
-typealias ProcessData = (data: NBTTagCompound, world: World, pos: BlockPos, player: EntityPlayer) -> Unit
+typealias ProcessData = (data: NBTTagCompound, world: World, player: EntityPlayer) -> Unit
 
 object CommonDataSpace{
     private val dataPackets = HashMap<String, DataPacket>()
     private val responsiveDataPackets = HashMap<String, ResponsiveDataPacket>()
 
-    fun storeDataPackets(name: String, data: DataPacket){
-        this.dataPackets += (name to data)
+    fun storeDataPackets(data: DataPacket): String{
+        val uuid = UUID.randomUUID().toString()
+        this.dataPackets += (uuid to data)
+        return uuid
     }
 
-    fun storeResponsiveDataPackets(name: String, data: ResponsiveDataPacket){
-        this.responsiveDataPackets += (name to data)
+    fun storeResponsiveDataPackets(data: ResponsiveDataPacket): String{
+        val uuid = UUID.randomUUID().toString()
+        this.responsiveDataPackets += (uuid to data)
+        return uuid
     }
 
-    fun retrieveDataPacket(name: String) = this.dataPackets.remove(name)
+    fun retrieveDataPacket(uuid: String) = this.dataPackets.remove(uuid)
 
-    fun retrieveResponsiveDataPacket(name: String) = this.responsiveDataPackets.remove(name)
+    fun retrieveResponsiveDataPacket(uuid: String) = this.responsiveDataPackets.remove(uuid)
 }
 
 data class DataPacket(val prepareMessageData: () -> NBTTagCompound, val processMessageData: ProcessData)
@@ -34,16 +40,12 @@ data class ResponsiveDataPacket(
 )
 
 abstract class BasicSidedMessage() : IMessage{
-    var name: String = ""
     var dataPacket: DataPacket? = null
-    var pos: BlockPos = BlockPos.ORIGIN
     var data = NBTTagCompound()
 }
 
 abstract class ResponsiveSidedMessage() : IMessage{
-    var name: String = ""
     var dataPacket: ResponsiveDataPacket? = null
-    var pos: BlockPos = BlockPos.ORIGIN
     var data = NBTTagCompound()
 }
 

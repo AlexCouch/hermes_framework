@@ -45,16 +45,13 @@ object EventHandler{
         if(event.side == LogicalSide.SERVER) return
         if(test1) {
             sendDataToServer {
-                messageName = "test"
-                player = event.player
-                blockpos = event.player.position
                 prepareMessageData {
                     val someNBTString = StringNBT("Hello you!")
                     val ret = CompoundNBT()
                     ret + ("some_string" to someNBTString)
                     ret
                 }
-                processMessageData { data, _, _, _ ->
+                processMessageData { data, _, _ ->
                     if (data.contains("some_string")) {
                         val someString = data.getString("some_string")
                         println(someString)
@@ -69,15 +66,13 @@ object EventHandler{
         if(event.side == LogicalSide.SERVER) return
         if(test2) {
             sendDataToServerWithResponse {
-                messageName = "test"
-                blockpos = event.player.position
                 prepareMessageData {
                     val someNBTString = StringNBT("Hello server!")
                     val ret = CompoundNBT()
                     ret + ("some_string" to someNBTString)
                     ret
                 }
-                processMessageData { data, _, _, _ ->
+                processMessageData { data, _, _ ->
                     if (data.contains("some_string")) {
                         val someString = data.getString("some_string")
                         println(someString)
@@ -89,7 +84,7 @@ object EventHandler{
                     ret + ("some_string" to someNBTString)
                     ret
                 }
-                processResponseMessageData { data, _, _, _ ->
+                processResponseMessageData { data, _, _ ->
                     if (data.contains("some_string")) {
                         val someString = data.getString("some_string")
                         println(someString)

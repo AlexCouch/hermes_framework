@@ -23,17 +23,15 @@ object EventHandler{
     fun serverMessageTest(event: TickEvent.PlayerTickEvent){
         if(test1) {
             sendDataToServer {
-                messageName = "test"
                 playermp =
                     if (event.player is EntityPlayerMP) event.player as EntityPlayerMP else return@sendDataToServer
-                blockpos = event.player.position
                 prepareMessageData {
                     val someNBTString = NBTTagString("Hello you!")
                     val ret = NBTTagCompound()
                     ret + ("some_string" to someNBTString)
                     ret
                 }
-                processMessageData { data, _, _, _ ->
+                processMessageData { data, _, _ ->
                     if (data.hasKey("some_string")) {
                         val someString = data.getString("some_string")
                         println(someString)
@@ -48,17 +46,15 @@ object EventHandler{
     fun responsiveServerMessageTest(event: TickEvent.PlayerTickEvent){
         if(test2) {
             sendDataToServerWithResponse {
-                messageName = "test"
                 playermp =
                     if (event.player is EntityPlayerMP) event.player as EntityPlayerMP else return@sendDataToServerWithResponse
-                blockpos = event.player.position
                 prepareMessageData {
                     val someNBTString = NBTTagString("Hello server!")
                     val ret = NBTTagCompound()
                     ret + ("some_string" to someNBTString)
                     ret
                 }
-                processMessageData { data, _, _, _ ->
+                processMessageData { data, _, _ ->
                     if (data.hasKey("some_string")) {
                         val someString = data.getString("some_string")
                         println(someString)
@@ -70,7 +66,7 @@ object EventHandler{
                     ret + ("some_string" to someNBTString)
                     ret
                 }
-                processResponseMessageData { data, _, _, _ ->
+                processResponseMessageData { data, _, _ ->
                     if (data.hasKey("some_string")) {
                         val someString = data.getString("some_string")
                         println(someString)
