@@ -10,7 +10,19 @@ updateJSONURL="http://myurl.me/"
 displayURL="http://example.com/"
 logoFile="examplemod.png"
 credits=""
-authors="Alex"
+authors="Alex Couch"
+description='''
+'''
+
+[[mods]]
+modId="hermes"
+version="${file.jarVersion}"
+displayName="Hermes"
+updateJSONURL="http://myurl.me/"
+displayURL="http://example.com/"
+logoFile="examplemod.png"
+credits=""
+authors="Alex Couch"
 description='''
 '''
 
@@ -23,6 +35,19 @@ description='''
 [[dependencies.test-mod]]
     modId="minecraft"
     mandatory=true
-    versionRange="[1.14.3]"
+    versionRange="[1.14,)"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.test-mod]]
+    modId="forge"
+    mandatory=true
+    versionRange="[27,)"
+    ordering="NONE"
+    side="BOTH"
+[[dependencies.test-mod]]
+    modId="minecraft"
+    mandatory=true
+    versionRange="[1.14,)"
     ordering="NONE"
     side="BOTH"

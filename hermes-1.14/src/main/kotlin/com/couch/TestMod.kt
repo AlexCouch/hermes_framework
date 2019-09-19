@@ -15,25 +15,7 @@ import net.minecraftforge.fml.common.Mod
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 
 @Mod("test-mod")
-object TestMod{
-    init{
-        FMLKotlinModLoadingContext.get().modEventBus.addListener{ _: FMLCommonSetupEvent ->
-            MessageFactory
-            var id = 0
-            //Register the basic sided message
-            MessageFactory.stream.messageBuilder(BasicSideMessage::class.java, id++)
-                .encoder(basicSidedMessageEncoder)
-                .decoder(basicSidedMessageDecoder)
-                .consumer(basicSidedMessageHandler)
-                .add()
-            MessageFactory.stream.messageBuilder(ResponsiveSidedMessage::class.java, id++)
-                .encoder(responsiveSidedMessageEncoder)
-                .decoder(responsiveSidedMessageDecoder)
-                .consumer(responsiveSidedMessagehandler)
-                .add()
-        }
-    }
-}
+object TestMod
 
 @KotlinEventBusSubscriber(modid="test-mod", bus = KotlinEventBusSubscriber.Bus.FORGE)
 object EventHandler{

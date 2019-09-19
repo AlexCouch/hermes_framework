@@ -23,8 +23,6 @@ object EventHandler{
     fun serverMessageTest(event: TickEvent.PlayerTickEvent){
         if(test1) {
             sendDataToServer {
-                playermp =
-                    if (event.player is EntityPlayerMP) event.player as EntityPlayerMP else return@sendDataToServer
                 prepareMessageData {
                     val someNBTString = NBTTagString("Hello you!")
                     val ret = NBTTagCompound()
@@ -46,8 +44,6 @@ object EventHandler{
     fun responsiveServerMessageTest(event: TickEvent.PlayerTickEvent){
         if(test2) {
             sendDataToServerWithResponse {
-                playermp =
-                    if (event.player is EntityPlayerMP) event.player as EntityPlayerMP else return@sendDataToServerWithResponse
                 prepareMessageData {
                     val someNBTString = NBTTagString("Hello server!")
                     val ret = NBTTagCompound()

@@ -2,19 +2,44 @@
 
 package com.couch.hermes
 
+import net.alexwells.kottle.FMLKotlinModLoadingContext
 import net.minecraft.entity.player.PlayerEntity
 import net.minecraft.entity.player.ServerPlayerEntity
 import net.minecraft.nbt.CompoundNBT
 import net.minecraft.nbt.INBT
 import net.minecraft.util.ResourceLocation
 import net.minecraft.world.World
+import net.minecraftforge.fml.common.Mod
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent
 import net.minecraftforge.fml.network.NetworkDirection
 import net.minecraftforge.fml.network.NetworkRegistry
 import java.util.*
 import kotlin.collections.HashMap
 
+const val MODID = "hermes"
+@Mod(MODID)
+object HermesFramework{
+    init{
+        FMLKotlinModLoadingContext.get().modEventBus.addListener{ _: FMLCommonSetupEvent ->
+            MessageFactory
+            var id = 0
+            //Register the basic sided message
+            MessageFactory.stream.messageBuilder(BasicSideMessage::class.java, ++id)
+                .encoder(basicSidedMessageEncoder)
+                .decoder(basicSidedMessageDecoder)
+                .consumer(basicSidedMessageHandler)
+                .add()
+            MessageFactory.stream.messageBuilder(ResponsiveSidedMessage::class.java, ++id)
+                .encoder(responsiveSidedMessageEncoder)
+                .decoder(responsiveSidedMessageDecoder)
+                .consumer(responsiveSidedMessagehandler)
+                .add()
+        }
+    }
+}
+
 object MessageFactory{
-    internal val stream = NetworkRegistry.ChannelBuilder.named(ResourceLocation("hermes","hermes"))
+    internal val stream = NetworkRegistry.ChannelBuilder.named(ResourceLocation(MODID,"hermes"))
         .clientAcceptedVersions { true }
         .serverAcceptedVersions { true }
         .networkProtocolVersion { "1.0" }

@@ -39,8 +39,6 @@ Code examples
 Sending a basic message
 ```Kotlin
 sendDataToServer {
-    playermp =
-        if (event.player is EntityPlayerMP) event.player as EntityPlayerMP else return@sendDataToServer
     prepareMessageData {
         val someNBTString = NBTTagString("Hello you!")
         val ret = NBTTagCompound()
@@ -60,8 +58,6 @@ Sending a responsive message
 
 ```Kotlin
 sendDataToServerWithResponse {
-    playermp =
-        if (event.player is EntityPlayerMP) event.player as EntityPlayerMP else return@sendDataToServerWithResponse
     prepareMessageData {
         val someNBTString = NBTTagString("Hello server!")
         val ret = NBTTagCompound()
